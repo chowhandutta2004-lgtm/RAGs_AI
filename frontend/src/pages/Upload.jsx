@@ -46,7 +46,7 @@ export default function Upload() {
 
       try {
         setUploadStatus(prev => ({ ...prev, [fileObj.id]: 'uploading' }))
-        await axios.post('http://localhost:8000/upload', formData, {
+        await axios.post(`${import.meta.env.VITE_API_URL}/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
         setUploadStatus(prev => ({ ...prev, [fileObj.id]: 'success' }))

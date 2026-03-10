@@ -17,7 +17,7 @@ export default function Analytics() {
   const fetchStats = async () => {
     setLoading(true)
     try {
-      const res = await axios.get('http://localhost:8000/analytics')
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/analytics`)
       setStats(res.data)
     } catch {
       // Use mock data if backend not ready

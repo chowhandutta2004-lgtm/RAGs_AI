@@ -72,7 +72,7 @@ export default function Chat() {
     setLoading(true)
 
     try {
-      const res = await axios.post('http://localhost:8000/chat', {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/chat`, {
         question: input,
         history: messages.map(m => ({ role: m.role, content: m.content }))
       })
