@@ -43,7 +43,6 @@ export default function Upload() {
     for (const fileObj of files) {
       const formData = new FormData()
       formData.append('file', fileObj.file)
-
       try {
         setUploadStatus(prev => ({ ...prev, [fileObj.id]: 'uploading' }))
         await axios.post(`${import.meta.env.VITE_API_URL}/upload`, formData, {
@@ -56,11 +55,10 @@ export default function Upload() {
     }
 
     setUploading(false)
-
-    // If all succeeded, go to chat after 1.5s
     setTimeout(() => {
       navigate('/chat')
     }, 1500)
+  }
 
   const getStatusIcon = (id) => {
     const status = uploadStatus[id]
@@ -74,8 +72,6 @@ export default function Upload() {
 
   return (
     <div className="min-h-screen bg-dark text-white">
-
-      {/* Navbar */}
       <nav className="flex items-center justify-between px-10 py-5 border-b border-white/10">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
           <Brain className="text-primary" size={28} />
@@ -95,7 +91,6 @@ export default function Upload() {
           <p className="text-white/50">Supports PDF, DOCX, TXT, and CSV files. Upload multiple at once.</p>
         </div>
 
-        {/* Dropzone */}
         <div
           {...getRootProps()}
           className={`border-2 border-dashed rounded-2xl p-14 text-center cursor-pointer transition-all duration-300
@@ -117,7 +112,6 @@ export default function Upload() {
           )}
         </div>
 
-        {/* File List */}
         {files.length > 0 && (
           <div className="mt-8 space-y-3">
             <h3 className="text-white/60 text-sm font-medium uppercase tracking-wider">Selected Files</h3>
@@ -146,7 +140,6 @@ export default function Upload() {
           </div>
         )}
 
-        {/* Upload Button */}
         {files.length > 0 && (
           <button
             onClick={handleUpload}
