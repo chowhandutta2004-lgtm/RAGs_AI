@@ -59,10 +59,8 @@ export default function Upload() {
 
     // If all succeeded, go to chat after 1.5s
     setTimeout(() => {
-      const allSuccess = files.every(f => uploadStatus[f.id] === 'success')
-      if (allSuccess) navigate('/chat')
+      navigate('/chat')
     }, 1500)
-  }
 
   const getStatusIcon = (id) => {
     const status = uploadStatus[id]
