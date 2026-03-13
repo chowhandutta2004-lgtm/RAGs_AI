@@ -1,4 +1,5 @@
 backend/.env
+backend/service-account.json
 backend/venv/
 backend/chroma_db/
 backend/__pycache__/
@@ -7,3 +8,6 @@ frontend/node_modules/
 frontend/dist/
 .DS_Store
 frontend/.env
+backend/user_data/
+.vscode/
+*.log
