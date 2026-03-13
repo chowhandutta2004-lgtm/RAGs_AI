@@ -27,6 +27,15 @@ function TiltCard({ children, className }) {
   )
 }
 
+function formatUploadDate(iso) {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  } catch {
+    return '—'
+  }
+}
+
 export default function Analytics() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -178,6 +187,19 @@ export default function Analytics() {
                 <p className="text-white/20 text-sm py-4 text-center">No documents yet.</p>
               ) : (
                 <div className="space-y-2">
+                  {/* Table header */}
+                  <div className="flex items-center justify-between px-4 pb-2 border-b border-white/[0.04]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9" />
+                      <span className="text-[11px] text-white/25 font-mono uppercase tracking-wider">Name</span>
+                    </div>
+                    <div className="flex items-center gap-6 text-right">
+                      <span className="text-[11px] text-white/25 font-mono uppercase tracking-wider w-12">Chunks</span>
+                      <span className="text-[11px] text-white/25 font-mono uppercase tracking-wider w-14">Words</span>
+                      <span className="text-[11px] text-white/25 font-mono uppercase tracking-wider w-24">Uploaded</span>
+                      <div className="w-8" />
+                    </div>
+                  </div>
                   <AnimatePresence>
                     {stats.documents?.map((doc, i) => (
                       <motion.div key={doc.name} layout
@@ -195,25 +217,28 @@ export default function Analytics() {
                           </div>
                         </div>
                         <div className="flex items-center gap-6 text-right">
-                          <div>
+                          <div className="w-12">
                             <p className="text-sm font-semibold text-violet-400">{doc.chunks}</p>
                             <p className="text-xs text-white/25">chunks</p>
                           </div>
-                          <div>
+                          <div className="w-14">
                             <p className="text-sm font-semibold text-white">{doc.words?.toLocaleString()}</p>
                             <p className="text-xs text-white/25">words</p>
                           </div>
+                          <div className="w-24">
+                            <p className="text-xs text-white/40 font-mono">{formatUploadDate(doc.uploaded_at)}</p>
+                          </div>
                           {deleting === doc.name ? (
-                            <div className="p-2"><RefreshCw size={14} className="animate-spin text-white/30" /></div>
+                            <div className="w-8 flex justify-center"><RefreshCw size={14} className="animate-spin text-white/30" /></div>
                           ) : confirmDelete === doc.name ? (
-                            <div className="flex items-center gap-1.5 opacity-100">
+                            <div className="flex items-center gap-1.5">
                               <button onClick={() => deleteDocument(doc.name)} className="px-2 py-1 text-xs rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition">Confirm</button>
                               <button onClick={() => setConfirmDelete(null)} className="px-2 py-1 text-xs glass rounded-lg text-white/40 hover:text-white transition">Cancel</button>
                             </div>
                           ) : (
                             <button
                               onClick={() => setConfirmDelete(doc.name)}
-                              className="p-2 rounded-lg text-white/15 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
+                              className="w-8 p-2 rounded-lg text-white/15 hover:text-red-400 hover:bg-red-500/10 transition opacity-0 group-hover:opacity-100"
                               title="Delete document"
                             >
                               <Trash2 size={14} />

@@ -4,17 +4,22 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        primary: '#6C63FF',
-        dark: '#0F0F1A',
-        card: '#1A1A2E',
+        void:    '#030308',
+        surface: '#080812',
+        primary: '#8B5CF6',
+        accent:  '#06B6D4',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-      }
+        sans: ['Space Grotesk', 'sans-serif'],
+        mono: ['Space Mono', 'monospace'],
+      },
+      backgroundImage: {
+        'violet-radial': 'radial-gradient(ellipse at center, rgba(139,92,246,0.18) 0%, transparent 70%)',
+        'cyan-radial':   'radial-gradient(ellipse at center, rgba(6,182,212,0.18) 0%, transparent 70%)',
+      },
     },
   },
   plugins: [],
