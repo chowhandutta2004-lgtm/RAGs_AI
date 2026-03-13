@@ -11,6 +11,6 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: GOOGLE_APPLICATION_CREDENTIALS
-        value: ./service-account.json
+        value: /etc/secrets/service-account.json
       - key: ALLOWED_ORIGINS
         value: https://ra-gs-ai.vercel.app
