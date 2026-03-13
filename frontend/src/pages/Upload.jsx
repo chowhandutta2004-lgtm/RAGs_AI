@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
-import { Brain, Upload as UploadIcon, FileText, CheckCircle, XCircle, Loader, Trash2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Brain, Upload as UploadIcon, FileText, CheckCircle, XCircle, Loader, Trash2, ArrowRight, BarChart2, MessageSquare } from 'lucide-react'
 import axios from 'axios'
+import { useAuth } from '../AuthContext'
 
 const ACCEPTED_TYPES = {
   'application/pdf': ['.pdf'],
@@ -11,149 +13,196 @@ const ACCEPTED_TYPES = {
   'text/csv': ['.csv'],
 }
 
+const EXT_COLORS = { PDF: 'text-red-400 bg-red-500/10 border-red-500/20', DOCX: 'text-blue-400 bg-blue-500/10 border-blue-500/20', TXT: 'text-green-400 bg-green-500/10 border-green-500/20', CSV: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20' }
+
 export default function Upload() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [files, setFiles] = useState([])
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState({})
+  const [uploadErrors, setUploadErrors] = useState({})
 
-  const onDrop = useCallback((acceptedFiles) => {
-    const newFiles = acceptedFiles.map(file => ({
-      file,
-      id: Math.random().toString(36).substr(2, 9),
-      status: 'ready'
-    }))
-    setFiles(prev => [...prev, ...newFiles])
+  const onDrop = useCallback((accepted) => {
+    setFiles(prev => [...prev, ...accepted.map(file => ({ file, id: Math.random().toString(36).substr(2, 9), status: 'ready' }))])
   }, [])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: ACCEPTED_TYPES,
-    multiple: true
-  })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: ACCEPTED_TYPES, multiple: true })
 
-  const removeFile = (id) => {
-    setFiles(prev => prev.filter(f => f.id !== id))
-  }
+  const removeFile = (id) => setFiles(prev => prev.filter(f => f.id !== id))
 
   const handleUpload = async () => {
-    if (files.length === 0) return
+    if (!files.length) return
     setUploading(true)
+    let anySuccess = false
 
-    for (const fileObj of files) {
+    const uploadOne = async (fileObj) => {
       const formData = new FormData()
       formData.append('file', fileObj.file)
+      setUploadStatus(prev => ({ ...prev, [fileObj.id]: 'uploading' }))
       try {
-        setUploadStatus(prev => ({ ...prev, [fileObj.id]: 'uploading' }))
+        const token = await user.getIdToken()
         await axios.post(`${import.meta.env.VITE_API_URL}/upload`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` }
         })
         setUploadStatus(prev => ({ ...prev, [fileObj.id]: 'success' }))
+        return true
       } catch (err) {
+        const detail = err?.response?.data?.detail || 'Upload failed'
+        setUploadErrors(prev => ({ ...prev, [fileObj.id]: detail }))
         setUploadStatus(prev => ({ ...prev, [fileObj.id]: 'error' }))
+        return false
       }
     }
 
-    setUploading(false)
-    setTimeout(() => {
-      navigate('/chat')
-    }, 1500)
-  }
+    const BATCH = 3
+    for (let i = 0; i < files.length; i += BATCH) {
+      const results = await Promise.all(files.slice(i, i + BATCH).map(uploadOne))
+      if (results.some(Boolean)) anySuccess = true
+    }
 
-  const getStatusIcon = (id) => {
-    const status = uploadStatus[id]
-    if (status === 'uploading') return <Loader size={18} className="animate-spin text-primary" />
-    if (status === 'success') return <CheckCircle size={18} className="text-green-400" />
-    if (status === 'error') return <XCircle size={18} className="text-red-400" />
-    return null
+    setUploading(false)
+    if (anySuccess) setTimeout(() => navigate('/chat'), 1500)
   }
 
   const allDone = files.length > 0 && files.every(f => uploadStatus[f.id] === 'success')
 
   return (
-    <div className="min-h-screen bg-dark text-white">
-      <nav className="flex items-center justify-between px-10 py-5 border-b border-white/10">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <Brain className="text-primary" size={28} />
-          <span className="text-xl font-bold tracking-tight">RAGs_AI</span>
-        </div>
-        <button
-          onClick={() => navigate('/chat')}
-          className="px-4 py-2 text-sm bg-primary rounded-lg hover:opacity-90 transition font-medium"
-        >
-          Go to Chat →
-        </button>
-      </nav>
+    <div className="min-h-screen bg-void text-white relative overflow-hidden">
 
-      <div className="max-w-3xl mx-auto px-6 py-16">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold mb-3">Upload Your Documents</h1>
-          <p className="text-white/50">Supports PDF, DOCX, TXT, and CSV files. Upload multiple at once.</p>
-        </div>
+      {/* Background */}
+      <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-[140px] orb-animate pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/8 rounded-full blur-[100px] orb-animate-slow pointer-events-none" />
 
-        <div
-          {...getRootProps()}
-          className={`border-2 border-dashed rounded-2xl p-14 text-center cursor-pointer transition-all duration-300
-            ${isDragActive
-              ? 'border-primary bg-primary/10 scale-[1.02]'
-              : 'border-white/20 hover:border-primary/50 hover:bg-white/5'
-            }`}
-        >
-          <input {...getInputProps()} />
-          <UploadIcon size={48} className="mx-auto mb-4 text-primary opacity-80" />
-          {isDragActive ? (
-            <p className="text-primary font-semibold text-lg">Drop your files here!</p>
-          ) : (
-            <>
-              <p className="text-white/70 text-lg font-medium">Drag & drop files here</p>
-              <p className="text-white/30 text-sm mt-2">or click to browse your computer</p>
-              <p className="text-white/20 text-xs mt-4">PDF · DOCX · TXT · CSV</p>
-            </>
-          )}
-        </div>
-
-        {files.length > 0 && (
-          <div className="mt-8 space-y-3">
-            <h3 className="text-white/60 text-sm font-medium uppercase tracking-wider">Selected Files</h3>
-            {files.map((fileObj) => (
-              <div
-                key={fileObj.id}
-                className="flex items-center justify-between bg-card border border-white/10 rounded-xl px-5 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText size={20} className="text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">{fileObj.file.name}</p>
-                    <p className="text-xs text-white/30">{(fileObj.file.size / 1024).toFixed(1)} KB</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {getStatusIcon(fileObj.id)}
-                  {!uploadStatus[fileObj.id] && (
-                    <button onClick={() => removeFile(fileObj.id)}>
-                      <Trash2 size={16} className="text-white/30 hover:text-red-400 transition" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+      {/* Navbar */}
+      <motion.nav initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        className="flex items-center justify-between px-10 py-4 glass border-b border-white/[0.06] sticky top-0 z-50"
+      >
+        <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="w-8 h-8 rounded-lg bg-violet-600/20 border border-violet-500/30 flex items-center justify-center">
+            <Brain size={15} className="text-violet-400" />
           </div>
-        )}
-
-        {files.length > 0 && (
-          <button
-            onClick={handleUpload}
-            disabled={uploading || allDone}
-            className={`mt-8 w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300
-              ${allDone
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                : 'bg-primary hover:opacity-90 shadow-lg shadow-primary/30'
-              }
-              disabled:cursor-not-allowed`}
-          >
-            {uploading ? '⏳ Processing documents...' : allDone ? '✅ All uploaded! Redirecting to chat...' : `🚀 Upload ${files.length} file${files.length > 1 ? 's' : ''}`}
+          <span className="font-bold tracking-tight">RAGs_AI</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/chat')} className="flex items-center gap-1.5 px-3 py-1.5 text-sm glass rounded-lg text-white/50 hover:text-white transition">
+            <MessageSquare size={13} /> Chat
           </button>
-        )}
+          <button onClick={() => navigate('/analytics')} className="flex items-center gap-1.5 px-3 py-1.5 text-sm glass rounded-lg text-white/50 hover:text-white transition">
+            <BarChart2 size={13} /> Analytics
+          </button>
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            onClick={() => navigate('/chat')}
+            className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-violet-600 hover:bg-violet-500 rounded-lg font-semibold transition"
+          >
+            Go to Chat <ArrowRight size={13} />
+          </motion.button>
+        </div>
+      </motion.nav>
+
+      <div className="max-w-3xl mx-auto px-6 py-16 relative z-10">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center mb-10">
+          <h1 className="text-5xl font-bold mb-3 gradient-text">Upload Documents</h1>
+          <p className="text-white/40">PDF · DOCX · TXT · CSV — multiple files at once</p>
+        </motion.div>
+
+        {/* Dropzone */}
+        <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1, duration: 0.5 }}>
+          <div {...getRootProps()}
+            className={`relative rounded-3xl p-16 text-center cursor-pointer transition-all duration-300 border-2 border-dashed overflow-hidden
+              ${isDragActive ? 'border-violet-500 bg-violet-500/10 scale-[1.02]' : 'border-white/[0.1] glass hover:border-violet-500/40 hover:bg-violet-500/[0.04]'}`}
+          >
+            <input {...getInputProps()} />
+            {isDragActive && (
+              <div className="absolute inset-0 bg-violet-500/5 rounded-3xl" />
+            )}
+            <motion.div animate={isDragActive ? { scale: 1.1 } : { scale: 1 }} transition={{ duration: 0.2 }}>
+              <div className="w-16 h-16 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mx-auto mb-5">
+                <UploadIcon size={28} className="text-violet-400" />
+              </div>
+            </motion.div>
+            {isDragActive ? (
+              <p className="text-violet-400 font-semibold text-lg">Drop your files here!</p>
+            ) : (
+              <>
+                <p className="text-white/70 text-lg font-medium mb-2">Drag & drop your files</p>
+                <p className="text-white/30 text-sm">or click to browse</p>
+                <div className="flex gap-2 justify-center mt-5">
+                  {['PDF', 'DOCX', 'TXT', 'CSV'].map(ext => (
+                    <span key={ext} className={`text-xs px-2.5 py-1 rounded-lg border font-mono ${EXT_COLORS[ext]}`}>{ext}</span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </motion.div>
+
+        {/* File list */}
+        <AnimatePresence>
+          {files.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6 space-y-3">
+              <p className="text-white/30 text-xs font-mono uppercase tracking-widest">Selected Files</p>
+              {files.map((fileObj) => {
+                const ext = fileObj.file.name.split('.').pop().toUpperCase()
+                const status = uploadStatus[fileObj.id]
+                return (
+                  <motion.div key={fileObj.id} layout
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center justify-between glass rounded-2xl px-5 py-3.5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-md border font-mono ${EXT_COLORS[ext] || 'text-white/40 bg-white/5 border-white/10'}`}>{ext}</span>
+                      <div>
+                        <p className="text-sm font-medium text-white">{fileObj.file.name}</p>
+                        <p className="text-xs text-white/30">{(fileObj.file.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {status === 'uploading' && <Loader size={17} className="animate-spin text-violet-400" />}
+                      {status === 'success'   && <CheckCircle size={17} className="text-green-400" />}
+                      {status === 'error'     && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-red-400/70 truncate max-w-[160px]">{uploadErrors[fileObj.id]}</span>
+                          <XCircle size={17} className="text-red-400 shrink-0" />
+                        </div>
+                      )}
+                      {!status && (
+                        <button onClick={() => removeFile(fileObj.id)}>
+                          <Trash2 size={15} className="text-white/20 hover:text-red-400 transition" />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Upload button */}
+        <AnimatePresence>
+          {files.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mt-6">
+              <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                onClick={handleUpload}
+                disabled={uploading || allDone}
+                className={`w-full py-4 rounded-2xl font-semibold text-base transition-all duration-300
+                  ${allDone
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                    : 'bg-violet-600 hover:bg-violet-500 text-white violet-glow'}
+                  disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {uploading ? (
+                  <span className="flex items-center justify-center gap-2"><Loader size={16} className="animate-spin" /> Processing documents...</span>
+                ) : allDone ? (
+                  '✓ All uploaded — redirecting to chat...'
+                ) : (
+                  `Upload ${files.length} file${files.length > 1 ? 's' : ''}`
+                )}
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
