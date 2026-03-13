@@ -1,10 +1,16 @@
 services:
   - type: web
     name: rags-ai-backend
-    runtime: python3
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    env: python
+    region: oregon
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: OPENAI_API_KEY
         sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: ./service-account.json
+      - key: ALLOWED_ORIGINS
+        value: https://ra-gs-ai.vercel.app
