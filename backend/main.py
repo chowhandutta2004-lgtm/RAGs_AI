@@ -80,9 +80,13 @@ async def upload_file(request: Request, file: UploadFile = File(...), user_id: s
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in allowed:
         raise HTTPException(status_code=400, detail=f"File type {ext} not supported")
+    MAX_SIZE = 20 * 1024 * 1024
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_SIZE:
+        raise HTTPException(status_code=413, detail="File exceeds 20 MB limit")
     contents = await file.read()
-    if len(contents) > 20 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File exceeds 20 MB limit")
+    if len(contents) > MAX_SIZE:
+        raise HTTPException(status_code=413, detail="File exceeds 20 MB limit")
     try:
         result = get_rag().ingest_document(contents, file.filename, user_id)
         return {

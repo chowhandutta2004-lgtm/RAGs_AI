@@ -23,11 +23,23 @@ export default function Upload() {
   const [uploadStatus, setUploadStatus] = useState({})
   const [uploadErrors, setUploadErrors] = useState({})
 
-  const onDrop = useCallback((accepted) => {
-    setFiles(prev => [...prev, ...accepted.map(file => ({ file, id: Math.random().toString(36).substr(2, 9), status: 'ready' }))])
+  const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20 MB
+
+  const onDrop = useCallback((accepted, rejected) => {
+    const newAccepted = accepted.map(file => ({ file, id: Math.random().toString(36).substr(2, 9) }))
+    const newRejected = rejected.map(({ file, errors }) => {
+      const id = Math.random().toString(36).substr(2, 9)
+      const msg = errors[0]?.code === 'file-too-large' ? 'File exceeds 20 MB limit' : errors[0]?.message || 'Rejected'
+      return { file, id, _error: msg }
+    })
+    setFiles(prev => [...prev, ...newAccepted, ...newRejected.map(({ _error, ...f }) => f)])
+    if (newRejected.length) {
+      setUploadStatus(prev => ({ ...prev, ...Object.fromEntries(newRejected.map(f => [f.id, 'error'])) }))
+      setUploadErrors(prev => ({ ...prev, ...Object.fromEntries(newRejected.map(f => [f.id, f._error])) }))
+    }
   }, [])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: ACCEPTED_TYPES, multiple: true })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: ACCEPTED_TYPES, multiple: true, maxSize: MAX_FILE_SIZE })
 
   const removeFile = (id) => setFiles(prev => prev.filter(f => f.id !== id))
 
