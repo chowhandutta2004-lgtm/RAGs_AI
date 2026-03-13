@@ -20,6 +20,7 @@ _defaults = [
     "http://localhost:5173", "http://localhost:5174",
     "http://localhost:5175", "http://localhost:5176",
     "https://ra-gs-ai.vercel.app",
+    "https://askmydocs-omega.vercel.app",
 ]
 _extra = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
 ALLOWED_ORIGINS = _defaults + _extra
